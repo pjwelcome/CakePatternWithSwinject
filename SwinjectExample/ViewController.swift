@@ -13,15 +13,50 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        let container = DepedencyContainer.instance
+        container.register(depedency: ProductsRepository.self, implemenation: {
+            ProductsRepositoryImplementation()
+        })
+        _ = ProductViewModel()
     }
+}
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+struct ProductViewModel: ProductsRepositoryInjectable {
+    
+    init() {
+        self.products.fetchProducts().forEach {
+            print("This \($0.name) costs R\($0.price)")
+        }
     }
+}
 
+struct Product {
+    var name: String
+    var price : Double
+}
 
+protocol ProductsRepository {
+    
+    func fetchProducts() -> [Product]
+}
+
+protocol ProductsRepositoryInjectable {
+    var products : ProductsRepository {get}
+}
+
+struct ProductsRepositoryImplementation : ProductsRepository {
+    func fetchProducts() -> [Product] {
+        
+        return [Product(name: "Adidas Sneakers", price: 500.0), Product(name: "Nike Sneakers", price: 1000.0)]
+    }
+}
+
+extension ProductsRepositoryInjectable {
+    
+    var products : ProductsRepository {
+        return Resolver.resolve(dependency: ProductsRepository.self)
+    }
+    
 }
 
 public protocol Resolvable {
@@ -34,7 +69,7 @@ public protocol Registrable {
 }
 
 public protocol Resolving {
-    static func resolve<T>(_ dependency: T.Type) -> T
+    static func resolve<T>( dependency: T.Type) -> T
     static func reset()
 }
 
@@ -44,7 +79,7 @@ class Resolver {
 
 extension Resolver : Resolving {
     
-    public static func resolve<T>(_ dependency: T.Type) -> T {
+    public static func resolve<T>(dependency: T.Type) -> T {
         return container.resolve(dependency)
     }
     public static func reset() {
